@@ -1,0 +1,127 @@
+diff --git a/simulation.py b/unpacked/lib/python3.10/site-packages/openmm/app/simulation.py
+old mode 100755
+new mode 100644
+index f1bed85..6ff3b55
+--- a/simulation.py
++++ b/unpacked/lib/python3.10/site-packages/openmm/app/simulation.py
+@@ -187,60 +187,67 @@ class Simulation(object):
+                 self.saveState(stateFile)
+ 
+     def _simulate(self, endStep=None, endTime=None):
+-        if endStep is None:
+-            endStep = sys.maxsize
+-        nextReport = [None]*len(self.reporters)
+-        while self.currentStep < endStep and (endTime is None or datetime.now() < endTime):
+-            nextSteps = endStep-self.currentStep
+-            
+-            # Find when the next report will happen.
+-            
+-            anyReport = False
+-            for i, reporter in enumerate(self.reporters):
+-                nextReport[i] = reporter.describeNextReport(self)
+-                if nextReport[i][0] > 0 and nextReport[i][0] <= nextSteps:
+-                    nextSteps = nextReport[i][0]
+-                    anyReport = True
+-            stepsToGo = nextSteps
+-            while stepsToGo > 10:
+-                self.integrator.step(10) # Only take 10 steps at a time, to give Python more chances to respond to a control-c.
+-                stepsToGo -= 10
+-                if endTime is not None and datetime.now() >= endTime:
+-                    return
+-            self.integrator.step(stepsToGo)
+-            if anyReport:
+-                # One or more reporters are ready to generate reports.  Organize them into three
+-                # groups: ones that want wrapped positions, ones that want unwrapped positions,
+-                # and ones that don't care about positions.
+-                
+-                wrapped = []
+-                unwrapped = []
+-                either = []
+-                for reporter, report in zip(self.reporters, nextReport):
+-                    if report[0] == nextSteps:
+-                        if len(report) > 5:
+-                            wantWrap = report[5]
+-                            if wantWrap is None:
++        try:
++            if endStep is None:
++                endStep = sys.maxsize
++            nextReport = [None]*len(self.reporters)
++            while self.currentStep < endStep and (endTime is None or datetime.now() < endTime):
++                nextSteps = endStep-self.currentStep
++
++                # Find when the next report will happen.
++
++                anyReport = False
++                for i, reporter in enumerate(self.reporters):
++                    nextReport[i] = reporter.describeNextReport(self)
++                    if nextReport[i][0] > 0 and nextReport[i][0] <= nextSteps:
++                        nextSteps = nextReport[i][0]
++                        anyReport = True
++                stepsToGo = nextSteps
++                while stepsToGo > 10:
++                    self.integrator.step(10) # Only take 10 steps at a time, to give Python more chances to respond to a control-c.
++                    stepsToGo -= 10
++                    if endTime is not None and datetime.now() >= endTime:
++                        return
++                self.integrator.step(stepsToGo)
++                if anyReport:
++                    # One or more reporters are ready to generate reports.  Organize them into three
++                    # groups: ones that want wrapped positions, ones that want unwrapped positions,
++                    # and ones that don't care about positions.
++
++                    wrapped = []
++                    unwrapped = []
++                    either = []
++                    for reporter, report in zip(self.reporters, nextReport):
++                        if report[0] == nextSteps:
++                            if len(report) > 5:
++                                wantWrap = report[5]
++                                if wantWrap is None:
++                                    wantWrap = self._usesPBC
++                            else:
+                                 wantWrap = self._usesPBC
+-                        else:
+-                            wantWrap = self._usesPBC
+-                        if not report[1]:
+-                            either.append((reporter, report))
+-                        elif wantWrap:
+-                            wrapped.append((reporter, report))
+-                        else:
+-                            unwrapped.append((reporter, report))
+-                if len(wrapped) > len(unwrapped):
+-                    wrapped += either
+-                else:
+-                    unwrapped += either
+-                
+-                # Generate the reports.
+-
+-                if len(wrapped) > 0:
+-                    self._generate_reports(wrapped, True)
+-                if len(unwrapped) > 0:
+-                    self._generate_reports(unwrapped, False)
++                            if not report[1]:
++                                either.append((reporter, report))
++                            elif wantWrap:
++                                wrapped.append((reporter, report))
++                            else:
++                                unwrapped.append((reporter, report))
++                    if len(wrapped) > len(unwrapped):
++                        wrapped += either
++                    else:
++                        unwrapped += either
++
++                    # Generate the reports.
++
++                    if len(wrapped) > 0:
++                        self._generate_reports(wrapped, True)
++                    if len(unwrapped) > 0:
++                        self._generate_reports(unwrapped, False)
++        except Exception as e:
++            unwrapped = []
++            for reporter, report in zip(self.reporters, nextReport):
++                unwrapped.append((reporter, report))
++            if len(unwrapped) > 0:
++                self._generate_reports(unwrapped, False)
+     
+     def _generate_reports(self, reports, periodic):
+         getPositions = False

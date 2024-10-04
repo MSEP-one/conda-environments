@@ -1,0 +1,32 @@
+From 6a70efc0555d1e029025a9959cf70b0368e35d35 Mon Sep 17 00:00:00 2001
+From: msuligoy <mariano.easyrpg@gmail.com>
+Date: Fri, 28 Jul 2023 17:31:59 -0300
+Subject: [PATCH] Normalize long filepaths on windows
+
+---
+ conda_pack/prefixes.py | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/conda_pack/prefixes.py b/conda_pack/prefixes.py
+index a2e0d0b..506902c 100644
+--- a/conda_pack/prefixes.py
++++ b/conda_pack/prefixes.py
+@@ -57,10 +57,14 @@ SHEBANG_REGEX = (
+ 
+ 
+ def update_prefix(path, new_prefix, placeholder, mode='text'):
+-    if on_win and mode == 'text':
++    if on_win:
++        # Get the normalized file path without the "\\?\" prefix used for long filenames
++        new_prefix = new_prefix.replace("\\\\?\\", "")
++        path = path.replace("\\\\?\\", "")
+         # force all prefix replacements to forward slashes to simplify need to
+         # escape backslashes replace with unix-style path separators
+         new_prefix = new_prefix.replace('\\', '/')
++        path = path.replace('\\', '/')
+ 
+     with open(path, 'rb+') as fh:
+         original_data = fh.read()
+-- 
+2.40.0.windows.1
+
